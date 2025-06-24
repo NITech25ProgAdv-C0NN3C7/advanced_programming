@@ -16,7 +16,7 @@ if [ $# -ge 3 ]; then
 	fi
 fi
 
-for result in $1/*.txt; do
+for result in $1/$2_*.txt; do
 	basename ${result}
 	answer=$2/test/`basename ${result}`
 	if [ -e ${answer} ]; then
