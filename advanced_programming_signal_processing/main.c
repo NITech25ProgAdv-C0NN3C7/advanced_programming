@@ -179,7 +179,7 @@ int main(int argc, char **argv)
 				strcat(output_name_img, ".ppm");
 			else if (img->channel == 1)
 				strcat(output_name_img, ".pgm");
-			printf("out: %s", output_name_img);
+			printf("out: %s\n", output_name_img);
 			writePXM(output_name_img, img);
 		}
 	}
