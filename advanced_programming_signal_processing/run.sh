@@ -15,11 +15,11 @@ for image in $1/test/*.ppm; do
 	name="imgproc/"$bname
 	x=0    	#
 	echo $name
-	# convert "${image}" "${name}"  # 何もしない画像処理
+	convert "${image}" "${name}"  # 何もしない画像処理
 	#   convert -blur 2x6 "${image}" "${name}"
 	# convert -median 1 "${image}" "${name}"
 	#   convert -auto-level "${image}" "${name}"
-	convert -equalize "${image}" "${name}"
+	# convert -equalize "${image}" "${name}"
 	echo $bname:
 	for template in $1/*.ppm; do
 		echo `basename ${template}`

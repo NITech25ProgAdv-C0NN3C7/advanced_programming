@@ -90,6 +90,29 @@ void templateMatchingColor(Image *src, Image *template, Point *position, double 
 	*distance = sqrt(min_distance) / (template->width * template->height);
 }
 
+char* getTrueBaseName(const char* name)
+{
+	int len = (int)strlen(name);
+	char* ret = (char*)malloc(len);
+	memcpy(ret, name, len);
+	int count = 0;
+	int i;
+	for (i = 0; i < len; i++)
+	{
+		if (ret[i] == '/')count++;
+	}
+
+	for (i = 0; i < count; i++)
+	{
+		ret = strchr(ret, '/') + 1;
+	}
+
+	char* ppt;
+	if ((ppt = strchr(ret, '.')) != NULL) *ppt = '\0';
+
+	return ret;
+}
+
 // test/beach3.ppm template /airgun_women_syufu.ppm 0 0.5 cwp
 int main(int argc, char **argv)
 {
@@ -119,7 +142,7 @@ int main(int argc, char **argv)
 	char output_name_txt[256];
 	char output_name_img[256];
 	strcpy(output_name_base, "result/");
-	strcat(output_name_base, getBaseName(input_file));
+	strcat(output_name_base, getTrueBaseName(input_file));
 	strcpy(output_name_txt, output_name_base);
 	strcat(output_name_txt, ".txt");
 	strcpy(output_name_img, output_name_base);
@@ -166,10 +189,10 @@ int main(int argc, char **argv)
 
 	if (distance < threshold)
 	{
-		writeResult(output_name_txt, getBaseName(template_file), result, template->width, template->height, rotation, distance);
+		writeResult(output_name_txt, getTrueBaseName(template_file), result, template->width, template->height, rotation, distance);
 		if (isPrintResult)
 		{
-			printf("[Found    ] %s %d %d %d %d %d %f\n", getBaseName(template_file), result.x, result.y, template->width, template->height, rotation, distance);
+			printf("[Found    ] %s %d %d %d %d %d %f\n", getTrueBaseName(template_file), result.x, result.y, template->width, template->height, rotation, distance);
 		}
 		if (isWriteImageResult)
 		{
@@ -187,7 +210,7 @@ int main(int argc, char **argv)
 	{
 		if (isPrintResult)
 		{
-			printf("[Not found] %s %d %d %d %d %d %f\n", getBaseName(template_file), result.x, result.y, template->width, template->height, rotation, distance);
+			printf("[Not found] %s %d %d %d %d %d %f\n", getTrueBaseName(template_file), result.x, result.y, template->width, template->height, rotation, distance);
 		}
 	}
 
