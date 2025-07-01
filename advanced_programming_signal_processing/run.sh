@@ -1,28 +1,195 @@
 #!/bin/sh
 # imagemagickで何か画像処理をして，/imgprocにかきこみ，テンプレートマッチング
 # 最終テストは，直下のforループを次に変更 for image in $1/final/*.ppm; do
-for image in $1/test/*.ppm; do
-    bname=`basename ${image}`
-    name="imgproc/"$bname
-    x=0    	#
-    echo $name
-    # convert "${image}" "${name}"  # 何もしない画像処理
-#   convert -blur 2x6 "${image}" "${name}"
-    # convert -median 1 "${image}" "${name}"
-#   convert -auto-level "${image}" "${name}"
-    convert -equalize "${image}" "${name}"
-    rotation=0
-    echo $bname:
-    for template in $1/*.ppm; do
-	echo `basename ${template}`
-	if [ $x = 0 ]
-	then
-	    ./matching $name "${template}" $rotation 1.5 cwp 
-	    x=1
-	else
-	    ./matching $name "${template}" $rotation 1.5 wp 
-	fi
+level=$1
+
+# images=$level/test/*.ppm
+# templates=$level/*.ppm
+
+# # ノイズどうするか
+
+# python3 FeatureMatching.py $images $templates > FeatureMatchingResult.txt
+# while read line
+# do
+#     # コマンド
+# done < FeatureMatchingResult.txt
+
+if [ $level = "level2" ]
+then
+    for image in $level/test/*.ppm; do
+        bname=`basename ${image}`
+        name="imgproc/"$bname
+        x=0    	#
+        echo $name
+        convert "${image}" "${name}"  # 何もしない画像処理
+
+        rotation=0
+        echo $bname:
+        for template in $level/*.ppm; do
+            template_bname=`basename ${template}`
+            echo $template_bname
+
+            template_name="imgproc/"$template_bname
+
+            if [ $x = 0 ]
+            then
+                ./matching $name $template $rotation 1.5 cwp
+                x=1
+            else
+                ./matching $name $template $rotation 1.5 wp
+            fi
+
+        done
+        echo ""
     done
-    echo ""
-done
-wait
+    wait
+elif [ $level = "level3" -o $level = "level5" -o $level = "level7" ]
+then
+    for image in $level/test/*.ppm; do
+        bname=`basename ${image}`
+        name="imgproc/"$bname
+        x=0    	#
+        echo $name
+        convert "${image}" "${name}"  # 何もしない画像処理
+    #   convert -blur 2x6 "${image}" "${name}"
+        # convert -median 1 "${image}" "${name}"
+    #   convert -auto-level "${image}" "${name}"
+        # convert -equalize "${image}" "${name}"
+
+        # 常にコントラスト補正したほうが精度高そう
+        equalized_img_name="imgproc/equalized_img.ppm"
+        convert -equalize "${image}" $equalized_img_name
+
+        # 試しにノイズ除去もしてみる -> ダメでした
+        # removed_noise="imgproc/removed_noise.ppm"
+        # convert -median 2 $name $removed_noise
+
+        rotation=0
+        echo $bname:
+        for template in $level/*.ppm; do
+            template_bname=`basename ${template}`
+            echo $template_bname
+
+            template_name="imgproc/"$template_bname
+
+            # ここからpython使用前提
+            # convert -equalize $template $template_name  # こっちもコントラスト補正
+            convert $template $template_name  # 何もしない
+
+            # json=$(python3 FeatureMatching.py "$name" "$template")
+
+            # is_found=$(echo "$json" | jq -r '.is_found')
+
+            # jq使えなかった
+            output=$(python3 FeatureMatching.py $equalized_img_name $template_name)
+
+            echo $output
+
+            set -- $output
+            is_found=$1
+            start_x=$2
+            start_y=$3
+            scale_percent=$4
+            rotation=$5
+
+            if [ $is_found -eq 1 ]
+            then
+                
+
+                if [ $scale_percent -ne 100 ]
+                then
+                    convert -resize $scale_percent"%" $template_name $template_name
+                fi
+
+                # if [ $x = 0 ]
+                # then
+                #     ./matching $name $template_name $rotation 100 cwpg
+                #     x=1
+                # else
+                #     ./matching $name $template_name $rotation 100 wpg
+                # fi
+
+                if [ $x = 0 ]
+                then
+                    ./matching $name $template_name $rotation 1 cwpg $start_x $start_y
+                    x=1
+                else
+                    ./matching $name $template_name $rotation 1 wpg $start_x $start_y
+                fi
+            fi
+
+            # 古いやつ
+            # template_name="imgproc/"$template_bname
+
+            # convert $template $template_name  # 何もしない画像処理
+
+            # for scale in "50%" "100%" "200%"; do
+            #     if [ $scale != "100%" ]
+            #     then
+            #         convert -resize $scale $template_name $template_name
+            #     fi
+
+            #     if [ $x = 0 ]
+            #     then
+            #         ./matching $name $template_name $rotation 1.5 cwp
+            #         x=1
+            #     else
+            #         ./matching $name $template_name $rotation 1.5 wp
+            #     fi
+            # done
+
+            # if [ $x = 0 ]
+            # then
+            #     ./matching $name $template_name $rotation 1.5 cwp
+            #     x=1
+            # else
+            #     ./matching $name $template_name $rotation 1.5 wp
+            # fi
+
+        done
+        echo ""
+    done
+    wait
+elif [ $level = "level6" ]
+then
+    r="0 90 180 270"
+    for template in $1/*.ppm; do
+        btpl=`basename ${template}`
+        for rotation in $r; do
+                tpl="rotated/"$rotation"/"$btpl
+            convert -rotate $rotation "${template}" "${tpl}"
+        done
+    done
+
+    for image in $1/test/*.ppm; do
+        bname=`basename ${image}`
+        name="imgproc/"$bname
+        x=0    	#
+        echo $name
+        convert "${image}" "${name}"  # 何もしない画像処理
+        #   convert -blur 2x6 "${image}" "${name}"
+        # convert -median 1 "${image}" "${name}"
+        #   convert -auto-level "${image}" "${name}"
+        # convert -equalize "${image}" "${name}"
+        echo $bname:
+        for template in $1/*.ppm; do
+            echo `basename ${template}`
+            btpl=`basename ${template}`
+            if [ $x = 0 ]
+            then
+                printf '%s ' $r | xargs -d' ' -I{} -P4 ./matching $name "rotated/{}/${btpl}" {} 1.5 cwp 
+                # for rotation in $r; do
+                # 	./matching $name "rotated/${rotation}/${btpl}" $rotation 1.5 cwp 
+                # done
+                x=1
+            else
+                printf '%s ' $r | xargs -d' ' -I{} -P4 ./matching $name "rotated/{}/${btpl}" {} 1.5 wp 
+                # for rotation in $r; do
+                # 	./matching $name "rotated/${rotation}/${btpl}" $rotation 1.5 wp 
+                # done
+            fi
+        done
+        echo ""
+    done
+    wait
+fi

@@ -23,6 +23,59 @@ void templateMatchingGray(Image *src, Image *template, Point *position, double *
 		{
 			int distance = 0;
 			//SSD
+			#pragma omp parallel for reduction(+: distance)
+			for (j = 0; j < template->height; j++)
+			{
+				for (i = 0; i < template->width; i++)
+				{
+					int v = (src->data[(y + j) * src->width + (x + i)] - template->data[j * template->width + i]);
+					distance += v * v;
+				}
+			}
+			if (distance < min_distance)
+			{
+				min_distance = distance;
+				ret_x = x;
+				ret_y = y;
+			}
+		}
+	}
+
+	position->x = ret_x;
+	position->y = ret_y;
+	*distance = sqrt(min_distance) / (template->width * template->height);
+}
+
+#define SURROUNDING_PIXELS 10
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
+void templateMatchingGrayAtSmallArea(Image *src, Image *template, Point *position, double *distance, int start_x, int start_y)
+{
+	if (src->channel != 1 || template->channel != 1)
+	{
+		fprintf(stderr, "src and/or templeta image is not a gray image.\n");
+		return;
+	}
+
+	int min_x = MAX(start_x - SURROUNDING_PIXELS, 0);
+	int max_x = MIN(start_x + SURROUNDING_PIXELS, src->width - template->width);
+	int min_y = MAX(start_y - SURROUNDING_PIXELS, 0);
+	int max_y = MIN(start_y + SURROUNDING_PIXELS, src->height - template->height);
+
+	printf("%d,%d->%d,%d\n", min_x, min_y, max_x, max_y);
+
+	int min_distance = INT_MAX;
+	int ret_x = 0;
+	int ret_y = 0;
+	int x, y, i, j;
+	for (y = min_y; y < max_y; y++)
+	{
+		for (x = min_x; x < max_x; x++)
+		{
+			int distance = 0;
+			//SSD
+			#pragma omp parallel for reduction(+: distance)
 			for (j = 0; j < template->height; j++)
 			{
 				for (i = 0; i < template->width; i++)
@@ -90,6 +143,29 @@ void templateMatchingColor(Image *src, Image *template, Point *position, double 
 	*distance = sqrt(min_distance) / (template->width * template->height);
 }
 
+char* getTrueBaseName(const char* name)
+{
+	int len = (int)strlen(name);
+	char* ret = (char*)malloc(len);
+	memcpy(ret, name, len);
+	int count = 0;
+	int i;
+	for (i = 0; i < len; i++)
+	{
+		if (ret[i] == '/')count++;
+	}
+
+	for (i = 0; i < count; i++)
+	{
+		ret = strchr(ret, '/') + 1;
+	}
+
+	char* ppt;
+	if ((ppt = strchr(ret, '.')) != NULL) *ppt = '\0';
+
+	return ret;
+}
+
 // test/beach3.ppm template /airgun_women_syufu.ppm 0 0.5 cwp
 int main(int argc, char **argv)
 {
@@ -119,7 +195,7 @@ int main(int argc, char **argv)
 	char output_name_txt[256];
 	char output_name_img[256];
 	strcpy(output_name_base, "result/");
-	strcat(output_name_base, getBaseName(input_file));
+	strcat(output_name_base, getTrueBaseName(input_file));
 	strcpy(output_name_txt, output_name_base);
 	strcat(output_name_txt, ".txt");
 	strcpy(output_name_img, output_name_base);
@@ -128,7 +204,8 @@ int main(int argc, char **argv)
 	int isPrintResult = 0;
 	int isGray = 0;
 
-	if (argc == 6)
+	// if (argc == 6)
+	if (argc >= 6)
 	{
 		char *p = NULL;
 		if (p = strchr(argv[5], 'c') != NULL)
@@ -154,7 +231,13 @@ int main(int argc, char **argv)
 		cvtColorGray(img, img_gray);
 		cvtColorGray(template, template_gray);
 
-		templateMatchingGray(img_gray, template_gray, &result, &distance);
+		if(argc <= 6) {
+			templateMatchingGray(img_gray, template_gray, &result, &distance);
+		} else {
+			int start_x = atoi(argv[6]);
+			int start_y = atoi(argv[7]);
+			templateMatchingGrayAtSmallArea(img_gray, template_gray, &result, &distance, start_x, start_y);
+		}
 
 		freeImage(img_gray);
 		freeImage(template_gray);
@@ -166,10 +249,10 @@ int main(int argc, char **argv)
 
 	if (distance < threshold)
 	{
-		writeResult(output_name_txt, getBaseName(template_file), result, template->width, template->height, rotation, distance);
+		writeResult(output_name_txt, getTrueBaseName(template_file), result, template->width, template->height, rotation, distance);
 		if (isPrintResult)
 		{
-			printf("[Found    ] %s %d %d %d %d %d %f\n", getBaseName(template_file), result.x, result.y, template->width, template->height, rotation, distance);
+			printf("[Found    ] %s %d %d %d %d %d %f\n", getTrueBaseName(template_file), result.x, result.y, template->width, template->height, rotation, distance);
 		}
 		if (isWriteImageResult)
 		{
@@ -179,7 +262,7 @@ int main(int argc, char **argv)
 				strcat(output_name_img, ".ppm");
 			else if (img->channel == 1)
 				strcat(output_name_img, ".pgm");
-			printf("out: %s", output_name_img);
+			printf("out: %s\n", output_name_img);
 			writePXM(output_name_img, img);
 		}
 	}
@@ -187,7 +270,7 @@ int main(int argc, char **argv)
 	{
 		if (isPrintResult)
 		{
-			printf("[Not found] %s %d %d %d %d %d %f\n", getBaseName(template_file), result.x, result.y, template->width, template->height, rotation, distance);
+			printf("[Not found] %s %d %d %d %d %d %f\n", getTrueBaseName(template_file), result.x, result.y, template->width, template->height, rotation, distance);
 		}
 	}
 
