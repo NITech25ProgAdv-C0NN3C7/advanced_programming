@@ -1,159 +1,183 @@
 #!/bin/sh
 # imagemagickで何か画像処理をして，/imgprocにかきこみ，テンプレートマッチング
 # 最終テストは，直下のforループを次に変更 for image in $1/final/*.ppm; do
+# ↑最終テスト時には下のimages_dirのtestをfinalに変更してください　すべてのlevelについて適用できます
 level=$1
 
-# images=$level/test/*.ppm
-# templates=$level/*.ppm
+images_dir=$level"/test/"
+templates_dir=$level"/"
 
-# # ノイズどうするか
+images=$images_dir"*.ppm"
+templates=$templates_dir"/*.ppm"
 
-# python3 FeatureMatching.py $images $templates > FeatureMatchingResult.txt
-# while read line
-# do
-#     # コマンド
-# done < FeatureMatchingResult.txt
-
-if [ $level = "level2" ]
+if [ $level = "level1" ]
 then
-    for image in $level/test/*.ppm; do
+    for image in $images; do
         bname=`basename ${image}`
         name="imgproc/"$bname
-        x=0    	#
+        x=0
         echo $name
         convert "${image}" "${name}"  # 何もしない画像処理
 
         rotation=0
         echo $bname:
-        for template in $level/*.ppm; do
+        for template in $templates; do
             template_bname=`basename ${template}`
             echo $template_bname
-
-            template_name="imgproc/"$template_bname
 
             if [ $x = 0 ]
             then
-                ./matching $name $template $rotation 1.5 cwp
+                ./matching $name $template $rotation 0.5 cpg
                 x=1
             else
-                ./matching $name $template $rotation 1.5 wp
+                ./matching $name $template $rotation 0.5 pg
             fi
 
         done
         echo ""
     done
     wait
-elif [ $level = "level3" -o $level = "level5" -o $level = "level7" ]
+
+elif [ $level = "level2" ]
 then
-    for image in $level/test/*.ppm; do
+    for image in $images; do
         bname=`basename ${image}`
         name="imgproc/"$bname
-        x=0    	#
+        x=0
         echo $name
         convert "${image}" "${name}"  # 何もしない画像処理
-    #   convert -blur 2x6 "${image}" "${name}"
-        # convert -median 1 "${image}" "${name}"
-    #   convert -auto-level "${image}" "${name}"
-        # convert -equalize "${image}" "${name}"
-
-        # 常にコントラスト補正したほうが精度高そう
-        equalized_img_name="imgproc/equalized_img.ppm"
-        convert -equalize "${image}" $equalized_img_name
-
-        # 試しにノイズ除去もしてみる -> ダメでした
-        # removed_noise="imgproc/removed_noise.ppm"
-        # convert -median 2 $name $removed_noise
 
         rotation=0
         echo $bname:
-        for template in $level/*.ppm; do
+        for template in $templates; do
             template_bname=`basename ${template}`
             echo $template_bname
 
-            template_name="imgproc/"$template_bname
-
-            # ここからpython使用前提
-            # convert -equalize $template $template_name  # こっちもコントラスト補正
-            convert $template $template_name  # 何もしない
-
-            # json=$(python3 FeatureMatching.py "$name" "$template")
-
-            # is_found=$(echo "$json" | jq -r '.is_found')
-
-            # jq使えなかった
-            output=$(python3 FeatureMatching.py $equalized_img_name $template_name)
-
-            echo $output
-
-            set -- $output
-            is_found=$1
-            start_x=$2
-            start_y=$3
-            scale_percent=$4
-            rotation=$5
-
-            if [ $is_found -eq 1 ]
+            if [ $x = 0 ]
             then
-                
-
-                if [ $scale_percent -ne 100 ]
-                then
-                    convert -resize $scale_percent"%" $template_name $template_name
-                fi
-
-                # if [ $x = 0 ]
-                # then
-                #     ./matching $name $template_name $rotation 100 cwpg
-                #     x=1
-                # else
-                #     ./matching $name $template_name $rotation 100 wpg
-                # fi
-
-                if [ $x = 0 ]
-                then
-                    ./matching $name $template_name $rotation 1 cwpg $start_x $start_y
-                    x=1
-                else
-                    ./matching $name $template_name $rotation 1 wpg $start_x $start_y
-                fi
+                ./matching $name $template $rotation 1.5 cp
+                x=1
+            else
+                ./matching $name $template $rotation 1.5 p
             fi
-
-            # 古いやつ
-            # template_name="imgproc/"$template_bname
-
-            # convert $template $template_name  # 何もしない画像処理
-
-            # for scale in "50%" "100%" "200%"; do
-            #     if [ $scale != "100%" ]
-            #     then
-            #         convert -resize $scale $template_name $template_name
-            #     fi
-
-            #     if [ $x = 0 ]
-            #     then
-            #         ./matching $name $template_name $rotation 1.5 cwp
-            #         x=1
-            #     else
-            #         ./matching $name $template_name $rotation 1.5 wp
-            #     fi
-            # done
-
-            # if [ $x = 0 ]
-            # then
-            #     ./matching $name $template_name $rotation 1.5 cwp
-            #     x=1
-            # else
-            #     ./matching $name $template_name $rotation 1.5 wp
-            # fi
 
         done
         echo ""
     done
     wait
+
+elif [ $level = "level3" ]
+then
+    for image in $images; do
+        bname=`basename ${image}`
+        name="imgproc/"$bname
+        x=0
+        echo $name
+        convert -equalize "${image}" "${name}"  # コントラスト補正
+
+        rotation=0
+        echo $bname:
+        for template in $templates; do
+            template_bname=`basename ${template}`
+            echo $template_bname
+
+            if [ $x = 0 ]
+            then
+                ./matching $name $template $rotation 1.5 cp
+                x=1
+            else
+                ./matching $name $template $rotation 1.5 p
+            fi
+
+        done
+        echo ""
+    done
+    wait
+
+elif [ $level = "level4" ]
+then
+    # level4の処理
+    echo "unimplemented"
+
+elif [ $level = "level5" ] || [ $level = "level7" ]
+then
+    # コントラスト補正
+    for image in $images; do
+        convert -equalize $image "imgproc/"`basename $image`
+    done
+    
+    # 特徴マッチング
+    feature_matching_results=$(python3 feature_matchings.py "imgproc/"$level"_*.ppm" $templates_dir"*.ppm")
+
+    # 行に対してループ
+    echo "$feature_matching_results" | while IFS= read -r line; do
+        set -- $line
+        processed_image=$1  # 埋め込み後画像は加工済み
+        template=$2  # 埋め込み前画像は未加工
+        pos_x=$3
+        pos_y=$4
+        scale_percent=$5
+        rotation=$6
+
+        if [ "$template" = "None" ]
+        then
+            # 見つかっていなければノイズが乗っている、回転は0と断定してOK？
+            # すべてのテンプレートについてテンプレートマッチング
+
+            # processed_imageをリセット
+            image=$images_dir`basename $processed_image`
+            convert $image $processed_image
+
+            x=0
+
+            for template in $templates; do
+                if [ $x = 0 ]
+                then
+                    ./matching $processed_image $template 0 1.5 cp
+                    x=1
+                else
+                    ./matching $processed_image $template 0 1.5 p
+                fi
+            done
+        else
+            # 見つかっていればそのテンプレートについてのみテンプレートマッチング
+
+            # processed_imageとprocessed_templateをリセット
+            image=$images_dir`basename $processed_image`
+            processed_template="imgproc/"`basename $template`
+            
+            convert $image $processed_image
+            convert $template $processed_template
+
+            if [ $scale_percent -ne 100 ]
+            then
+                convert -resize $scale_percent"%" $processed_template $processed_template
+            fi
+
+            if [ $rotation -ne 0 ]
+            then
+                convert -rotate $rotation $processed_template $processed_template
+            fi
+
+            ./matching $processed_image $processed_template $rotation 1.5 cpg $pos_x $pos_y
+        fi
+
+        # output_name="result/`basename $template_name`.txt"
+        # read template_bname others < $output_name
+
+        # result_template_name=`cat ${result} | awk '{print $1}'`
+
+        # if [ -z $result_template_name ]
+        # then
+        #     # テンプレートマッチングで見つかっていなければ背景が透過されている
+        #     # テンプレートの黒を無視するオプション付ける？多分和真氏が作ってたのでそれを利用？
+        # fi
+    done
+
 elif [ $level = "level6" ]
 then
     r="0 90 180 270"
-    for template in $1/*.ppm; do
+    for template in $templates; do
         btpl=`basename ${template}`
         for rotation in $r; do
                 tpl="rotated/"$rotation"/"$btpl
@@ -161,7 +185,7 @@ then
         done
     done
 
-    for image in $1/test/*.ppm; do
+    for image in $images; do
         bname=`basename ${image}`
         name="imgproc/"$bname
         x=0    	#
@@ -172,7 +196,7 @@ then
         #   convert -auto-level "${image}" "${name}"
         # convert -equalize "${image}" "${name}"
         echo $bname:
-        for template in $1/*.ppm; do
+        for template in $templates; do
             echo `basename ${template}`
             btpl=`basename ${template}`
             if [ $x = 0 ]
