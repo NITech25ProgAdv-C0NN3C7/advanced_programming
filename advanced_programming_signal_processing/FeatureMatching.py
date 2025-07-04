@@ -121,5 +121,5 @@ else:
 # マッチング結果の描画
 # img_matching = cv2.drawMatches(template_resized, kp1, img_resized, kp2, good_matches, None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
 
-# cv2.imwrite('MatchingResult.png', img_matching)
+# cv2.imwrite('MatchingResult.png', result/img_matching)
 

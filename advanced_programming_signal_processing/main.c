@@ -23,7 +23,7 @@ void templateMatchingGray(Image *src, Image *template, Point *position, double *
 		{
 			int distance = 0;
 			//SSD
-			#pragma omp parallel for reduction(+: distance)
+			// #pragma omp parallel for reduction(+: distance)
 			for (j = 0; j < template->height; j++)
 			{
 				for (i = 0; i < template->width; i++)
@@ -63,7 +63,8 @@ void templateMatchingGrayAtSmallArea(Image *src, Image *template, Point *positio
 	int min_y = MAX(start_y - SURROUNDING_PIXELS, 0);
 	int max_y = MIN(start_y + SURROUNDING_PIXELS, src->height - template->height);
 
-	printf("%d,%d->%d,%d\n", min_x, min_y, max_x, max_y);
+	// デバッグ用
+	// printf("%d,%d->%d,%d\n", min_x, min_y, max_x, max_y);
 
 	int min_distance = INT_MAX;
 	int ret_x = 0;
@@ -75,7 +76,7 @@ void templateMatchingGrayAtSmallArea(Image *src, Image *template, Point *positio
 		{
 			int distance = 0;
 			//SSD
-			#pragma omp parallel for reduction(+: distance)
+			// #pragma omp parallel for reduction(+: distance)
 			for (j = 0; j < template->height; j++)
 			{
 				for (i = 0; i < template->width; i++)
