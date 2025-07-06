@@ -7,97 +7,59 @@ level=$1
 images_dir=$level"/test/"
 templates_dir=$level"/"
 
+imgproc_dir="imgproc/"
+
 images=$images_dir"*.ppm"
 templates=$templates_dir"/*.ppm"
+
+# バックグラウンドで並列に実行するための関数
+run_single_image() {
+    image=$1
+    templates=$2  # "$templates"のように、ワイルドカードを用いて表現されたパスをダブルクォーテーションで囲って渡してください
+    rotation=$3
+    threshold=$4
+    option=$5  # x=0時のcオプションは自動で付加されます c以外のオプションを渡してください
+
+    x=0
+
+    for template in $templates; do
+        if [ $x = 0 ]
+        then
+            ./matching $image $template $rotation $threshold c"$option"
+            x=1
+        else
+            ./matching $image $template $rotation $threshold "$option"
+        fi
+    done
+}
 
 if [ $level = "level1" ]
 then
     for image in $images; do
-        bname=`basename ${image}`
-        name="imgproc/"$bname
-        x=0
-        echo $name
-        convert "${image}" "${name}"  # 何もしない画像処理
-
-        rotation=0
-        echo $bname:
-        for template in $templates; do
-            template_bname=`basename ${template}`
-            echo $template_bname
-
-            if [ $x = 0 ]
-            then
-                ./matching $name $template $rotation 0.5 cpg
-                x=1
-            else
-                ./matching $name $template $rotation 0.5 pg
-            fi
-
-        done
-        echo ""
+        run_single_image $image "$templates" 0 0.5 pg &
     done
-    wait
 
 elif [ $level = "level2" ]
 then
     for image in $images; do
-        bname=`basename ${image}`
-        name="imgproc/"$bname
-        x=0
-        echo $name
-        convert "${image}" "${name}"  # 何もしない画像処理
-
-        rotation=0
-        echo $bname:
-        for template in $templates; do
-            template_bname=`basename ${template}`
-            echo $template_bname
-
-            if [ $x = 0 ]
-            then
-                ./matching $name $template $rotation 1.5 cp
-                x=1
-            else
-                ./matching $name $template $rotation 1.5 p
-            fi
-
-        done
-        echo ""
+        run_single_image $image "$templates" 0 1.5 p &
     done
-    wait
 
 elif [ $level = "level3" ]
 then
     for image in $images; do
-        bname=`basename ${image}`
-        name="imgproc/"$bname
-        x=0
-        echo $name
-        convert -equalize "${image}" "${name}"  # コントラスト補正
+        # コントラスト補正
+        processed_image=$imgproc_dir`basename $image`
+        convert -equalize $image $processed_image
 
-        rotation=0
-        echo $bname:
-        for template in $templates; do
-            template_bname=`basename ${template}`
-            echo $template_bname
-
-            if [ $x = 0 ]
-            then
-                ./matching $name $template $rotation 1.5 cp
-                x=1
-            else
-                ./matching $name $template $rotation 1.5 p
-            fi
-
-        done
-        echo ""
+        run_single_image $processed_image "$templates" 0 1.5 p &
     done
-    wait
 
 elif [ $level = "level4" ]
 then
     # level4の処理
     echo "unimplemented"
+
 
 elif [ $level = "level5" ] || [ $level = "level7" ]
 then
@@ -109,8 +71,14 @@ then
     # 特徴マッチング
     feature_matching_results=$(python3 feature_matchings.py "imgproc/"$level"_*.ppm" $templates_dir"*.ppm")
 
+    # 結果をファイルに入れないと並列処理のwaitがうまくいかない
+    feature_matching_results_file="result/feature_matching_results.txt"
+    echo "$feature_matching_results" > $feature_matching_results_file
+
     # 行に対してループ
-    echo "$feature_matching_results" | while IFS= read -r line; do
+    # echo "$feature_matching_results" | while IFS= read -r line; do
+    while IFS= read -r line; do
+
         set -- $line
         processed_image=$1  # 埋め込み後画像は加工済み
         template=$2  # 埋め込み前画像は未加工
@@ -119,47 +87,35 @@ then
         scale_percent=$5
         rotation=$6
 
+        image=$images_dir`basename $processed_image`
+
         if [ "$template" = "None" ]
         then
             # 見つかっていなければノイズが乗っている、回転は0と断定してOK？
             # すべてのテンプレートについてテンプレートマッチング
-
-            # processed_imageをリセット
-            image=$images_dir`basename $processed_image`
-            convert $image $processed_image
-
-            x=0
-
-            for template in $templates; do
-                if [ $x = 0 ]
-                then
-                    ./matching $processed_image $template 0 1.5 cp
-                    x=1
-                else
-                    ./matching $processed_image $template 0 1.5 p
-                fi
-            done
+            run_single_image $image "$templates" 0 1.5 p &
         else
             # 見つかっていればそのテンプレートについてのみテンプレートマッチング
-
-            # processed_imageとprocessed_templateをリセット
-            image=$images_dir`basename $processed_image`
+            # テンプレート画像を加工
             processed_template="imgproc/"`basename $template`
             
-            convert $image $processed_image
+            # 何もしない
             convert $template $processed_template
 
+            # 必要に応じて拡大縮小
             if [ $scale_percent -ne 100 ]
             then
                 convert -resize $scale_percent"%" $processed_template $processed_template
             fi
 
+            # 必要に応じて回転
             if [ $rotation -ne 0 ]
             then
                 convert -rotate $rotation $processed_template $processed_template
             fi
 
-            ./matching $processed_image $processed_template $rotation 1.5 cpg $pos_x $pos_y
+            # テンプレートマッチング
+            ./matching $image $processed_template $rotation 1.5 cpg $pos_x $pos_y &
         fi
 
         # output_name="result/`basename $template_name`.txt"
@@ -170,9 +126,11 @@ then
         # if [ -z $result_template_name ]
         # then
         #     # テンプレートマッチングで見つかっていなければ背景が透過されている
-        #     # テンプレートの黒を無視するオプション付ける？多分和真氏が作ってたのでそれを利用？
+        #     # level4のような処理をしたい
         # fi
-    done
+    # done
+
+    done < $feature_matching_results_file
 
 elif [ $level = "level6" ]
 then
@@ -215,5 +173,6 @@ then
         done
         echo ""
     done
-    wait
 fi
+
+wait
