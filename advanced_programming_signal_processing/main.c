@@ -4,7 +4,7 @@
 #include <string.h>
 #include <limits.h>
 //#include <omp.h>
-int isNoBlack=0;
+
 void templateMatchingGray(Image *src, Image *template, Point *position, double *distance)
 {
 	if (src->channel != 1 || template->channel != 1)
@@ -259,8 +259,8 @@ void templateMatchingColorWithoutBlack(Image *src, Image *template, Point *posit
 				int b = src->data[pt + 2] - template->data[pt2 + 2];
 
 				distance += template->data[pt2 + 0] || template->data[pt2 + 1] || template->data[pt2 + 2]
-            ? r * r + g * g + b * b // 黒でない
-            : 0;  // 黒
+																								 ? r * r + g * g + b * b // 黒でない
+																								 : 0;  // 黒
 			}
 			if (distance < min_distance)
 			{
@@ -336,6 +336,7 @@ int main(int argc, char **argv)
 	int isWriteImageResult = 0;
 	int isPrintResult = 0;
 	int isGray = 0;
+	int isNoBlack=0;
 
 	// if (argc == 6)
 	if (argc >= 6)
