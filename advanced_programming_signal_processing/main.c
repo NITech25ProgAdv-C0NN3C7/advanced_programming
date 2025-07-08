@@ -4,7 +4,7 @@
 #include <string.h>
 #include <limits.h>
 //#include <omp.h>
-
+int isNoBlack=0;
 void templateMatchingGray(Image *src, Image *template, Point *position, double *distance)
 {
 	if (src->channel != 1 || template->channel != 1)
@@ -123,6 +123,7 @@ void templateMatchingGrayAtSmallArea(Image *src, Image *template, Point *positio
 	position->y = ret_y;
 	*distance = sqrt(min_distance) / (template->width * template->height);
 }
+
 void templateMatchingColor(Image *src, Image *template, Point *position, double *distance)
 {
 	if (src->channel != 3 || template->channel != 3)
@@ -183,6 +184,83 @@ void templateMatchingColor(Image *src, Image *template, Point *position, double 
 				int b = src->data[pt + 2] - template->data[pt2 + 2];
 
 				distance += r * r + g * g + b * b;
+			}
+			if (distance < min_distance)
+			{
+				min_distance = distance;
+				ret_x = x;
+				ret_y = y;
+			}
+		}
+	}
+
+	position->x = ret_x;
+	position->y = ret_y;
+	*distance = sqrt(min_distance) / (template->width * template->height);
+}
+
+void templateMatchingColorWithoutBlack(Image *src, Image *template, Point *position, double *distance)
+{
+	if (src->channel != 3 || template->channel != 3)
+	{
+		fprintf(stderr, "src and/or templeta image is not a color image.\n");
+		return;
+	}
+
+	int min_distance = INT_MAX;
+	int ret_x = 0;
+	int ret_y = 0;
+	int x, y, i, j;
+//	for (y = 0; y < (src->height - template->height); y++)
+//	{
+//		for (x = 0; x < src->width - template->width; x++)
+//		{
+//			int distance = 0;
+//			//SSD
+//			for (j = 0; j < template->height; j++)
+//			{
+//				for (i = 0; i < template->width; i++)
+//				{
+//					int pt = 3 * ((y + j) * src->width + (x + i));
+//					int pt2 = 3 * (j * template->width + i);
+//					int r = (src->data[pt + 0] - template->data[pt2 + 0]);
+//					int g = (src->data[pt + 1] - template->data[pt2 + 1]);
+//					int b = (src->data[pt + 2] - template->data[pt2 + 2]);
+//
+//					distance += (r * r + g * g + b * b);
+//				}
+//			}
+//			if (distance < min_distance)
+//			{
+//				min_distance = distance;
+//				ret_x = x;
+//				ret_y = y;
+//			}
+//		}
+//	}
+	int m, n;	// ループ潰し
+	// SSD
+	#pragma omp parallel for
+	for (m = 0; m < (src->height - template->height) * (src->width - template->width); m++)
+	{
+		int x = m % src->width, y = m / src->width;	// m = y * src->width + x
+		if (x < src->width - template->width)
+		{
+			int distance = 0;
+			// SSD
+			#pragma omp parallel for reduction(+: distance)
+			for (n = 0; n < template->height * template->width; n++)
+			{
+				int i = n % template->width, j = n / template->width;	// n = j * template->width + i
+				int pt = 3 * (m + j * src->width + i);
+				int pt2 = 3 * n;
+				int r = src->data[pt + 0] - template->data[pt2 + 0];
+				int g = src->data[pt + 1] - template->data[pt2 + 1];
+				int b = src->data[pt + 2] - template->data[pt2 + 2];
+
+				distance += template->data[pt2 + 0] || template->data[pt2 + 1] || template->data[pt2 + 2]
+            ? r * r + g * g + b * b // 黒でない
+            : 0;  // 黒
 			}
 			if (distance < min_distance)
 			{
@@ -271,6 +349,8 @@ int main(int argc, char **argv)
 			isPrintResult = 1;
 		if (p = strchr(argv[5], 'g') != NULL)
 			isGray = 1;
+		if (p = strchr(argv[5], 'b') != NULL)
+			isNoBlack = 1;
 	}
 
 	Image *img = readPXM(input_file);
@@ -299,7 +379,7 @@ int main(int argc, char **argv)
 	}
 	else
 	{
-		templateMatchingColor(img, template, &result, &distance);
+		(isNoBlack ? templateMatchingColorWithoutBlack : templateMatchingColor)(img, template, &result, &distance);
 	}
 
 	if (distance < threshold)
