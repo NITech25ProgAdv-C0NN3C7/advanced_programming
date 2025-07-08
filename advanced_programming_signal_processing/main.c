@@ -4,7 +4,7 @@
 #include <string.h>
 #include <limits.h>
 //#include <omp.h>
-
+int isNoBlack=0;
 void templateMatchingGray(Image *src, Image *template, Point *position, double *distance)
 {
 	if (src->channel != 1 || template->channel != 1)
@@ -126,8 +126,14 @@ void templateMatchingColor(Image *src, Image *template, Point *position, double 
 					int r = (src->data[pt + 0] - template->data[pt2 + 0]);
 					int g = (src->data[pt + 1] - template->data[pt2 + 1]);
 					int b = (src->data[pt + 2] - template->data[pt2 + 2]);
-
-					distance += (r * r + g * g + b * b);
+					if(isNoBlack==1){
+						if(!(template->data[pt2 + 0]==0&&template->data[pt2 + 1]==0&&template->data[pt2 + 2]==0)){
+							distance += (r * r + g * g + b * b);
+						}
+					}else{
+						distance += (r * r + g * g + b * b);
+					}
+					
 				}
 			}
 			if (distance < min_distance)
@@ -217,6 +223,8 @@ int main(int argc, char **argv)
 			isPrintResult = 1;
 		if (p = strchr(argv[5], 'g') != NULL)
 			isGray = 1;
+		if (p = strchr(argv[5], 'b') != NULL)
+			isNoBlack = 1;
 	}
 
 	Image *img = readPXM(input_file);
