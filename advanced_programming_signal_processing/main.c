@@ -251,16 +251,17 @@ void templateMatchingColorWithoutBlack(Image *src, Image *template, Point *posit
 			#pragma omp parallel for reduction(+: distance)
 			for (n = 0; n < template->height * template->width; n++)
 			{
-				int i = n % template->width, j = n / template->width;	// n = j * template->width + i
-				int pt = 3 * (m + j * src->width + i);
 				int pt2 = 3 * n;
-				int r = src->data[pt + 0] - template->data[pt2 + 0];
-				int g = src->data[pt + 1] - template->data[pt2 + 1];
-				int b = src->data[pt + 2] - template->data[pt2 + 2];
+				if (template->data[pt2 + 0] || template->data[pt2 + 1] || template->data[pt2 + 2])
+				{
+					int i = n % template->width, j = n / template->width;	// n = j * template->width + i
+					int pt = 3 * (m + j * src->width + i);
+					int r = src->data[pt + 0] - template->data[pt2 + 0];
+					int g = src->data[pt + 1] - template->data[pt2 + 1];
+					int b = src->data[pt + 2] - template->data[pt2 + 2];
 
-				distance += template->data[pt2 + 0] || template->data[pt2 + 1] || template->data[pt2 + 2]
-																								 ? r * r + g * g + b * b // 黒でない
-																								 : 0;  // 黒
+					distance += r * r + g * g + b * b;
+				}
 			}
 			if (distance < min_distance)
 			{
