@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
-//#include <omp.h>
+#include <omp.h>
 
 void templateMatchingGray(Image *src, Image *template, Point *position, double *distance)
 {
@@ -16,46 +16,21 @@ void templateMatchingGray(Image *src, Image *template, Point *position, double *
 	int min_distance = INT_MAX;
 	int ret_x = 0;
 	int ret_y = 0;
-//	int x, y, i, j;
-//	for (y = 0; y < (src->height - template->height); y++)
-//	{
-//		for (x = 0; x < src->width - template->width; x++)
-//		{
-//			int distance = 0;
-//			// // SSD
-//			// #pragma omp parallel for reduction(+: distance)
-//			for (j = 0; j < template->height; j++)
-//			{
-//				for (i = 0; i < template->width; i++)
-//				{
-//					int v = (src->data[(y + j) * src->width + (x + i)] - template->data[j * template->width + i]);
-//					distance += v * v;
-//				}
-//			}
-//			if (distance < min_distance)
-//			{
-//				min_distance = distance;
-//				ret_x = x;
-//				ret_y = y;
-//			}
-//		}
-//	}
-	int m, n;	// ループ潰し
-//	// SSD
-//	#pragma omp parallel for
-	for (m = 0; m < (src->height - template->height) * (src->width - template->width); m++)
+	int x, y, i, j;
+	for (y = 0; y < (src->height - template->height); y++)
 	{
-		int x = m % src->width, y = m / src->width;	// m = y * src->width + x
-		if (x < src->width - template->width)
+		for (x = 0; x < src->width - template->width; x++)
 		{
 			int distance = 0;
-			// SSD
-			#pragma omp parallel for reduction(+: distance)
-			for (n = 0; n < template->height * template->width; n++)
+			// // SSD
+			// #pragma omp parallel for reduction(+: distance)
+			for (j = 0; j < template->height; j++)
 			{
-				int i = n % template->width, j = n / template->width,	// n = j * template->width + i
-						v = src->data[m + j * src->width + i] - template->data[n];
-				distance += v * v;
+				for (i = 0; i < template->width; i++)
+				{
+					int v = (src->data[(y + j) * src->width + (x + i)] - template->data[j * template->width + i]);
+					distance += v * v;
+				}
 			}
 			if (distance < min_distance)
 			{
@@ -65,6 +40,36 @@ void templateMatchingGray(Image *src, Image *template, Point *position, double *
 			}
 		}
 	}
+
+
+
+// 	int m, n;	// ループ潰し
+// //	// SSD
+// 	// #pragma omp parallel for
+// 	for (m = 0; m < (src->height - template->height) * (src->width - template->width); m++)
+// 	{
+// 		int x = m % src->width, y = m / src->width;	// m = y * src->width + x
+// 		if (x < src->width - template->width)
+// 		{
+// 			int distance = 0;
+// 			// SSD
+// 			// #pragma omp parallel for reduction(+: distance)
+// 			for (n = 0; n < template->height * template->width; n++)
+// 			{
+// 				int i = n % template->width, j = n / template->width,	// n = j * template->width + i
+// 						v = src->data[m + j * src->width + i] - template->data[n];
+// 				distance += v * v;
+// 			}
+// 			if (distance < min_distance)
+// 			{
+// 				min_distance = distance;
+// 				ret_x = x;
+// 				ret_y = y;
+// 			}
+// 		}
+// 	}
+
+
 
 	position->x = ret_x;
 	position->y = ret_y;
