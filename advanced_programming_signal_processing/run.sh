@@ -4,6 +4,8 @@
 # ↑最終テスト時には下のimages_dirのtestをfinalに変更してください　すべてのlevelについて適用できます
 level=$1
 
+mkdir -p imgproc result
+
 images_dir=$level"/test/"
 templates_dir=$level"/"
 
@@ -31,6 +33,25 @@ run_single_image() {
             ./matching $image $template $rotation $threshold "$option"
         fi
     done
+}
+
+# バックグラウンドで並列に実行するための関数（level6）
+run_single_image6() {
+	echo `basename ${1}`
+	btpl=`basename ${1}`
+	if [ $x = 0 ]
+	then
+		printf '%s ' $r | xargs -d' ' -I{} -P4 ./matching $name "rotated/{}/${btpl}" {} 1.5 cwp 
+		# for rotation in $r; do
+		# 	./matching $name "rotated/${rotation}/${btpl}" $rotation 1.5 cwp 
+		# done
+		x=1
+	else
+		printf '%s ' $r | xargs -d' ' -I{} -P4 ./matching $name "rotated/{}/${btpl}" {} 1.5 wp 
+		# for rotation in $r; do
+		# 	./matching $name "rotated/${rotation}/${btpl}" $rotation 1.5 wp 
+		# done
+	fi
 }
 
 case $level in
@@ -157,21 +178,7 @@ case $level in
 			# convert -equalize "${image}" "${name}"
 			echo $bname:
 			for template in $templates; do
-				echo `basename ${template}`
-				btpl=`basename ${template}`
-				if [ $x = 0 ]
-				then
-					printf '%s ' $r | xargs -d' ' -I{} -P4 ./matching $name "rotated/{}/${btpl}" {} 1.5 cwp 
-					# for rotation in $r; do
-					# 	./matching $name "rotated/${rotation}/${btpl}" $rotation 1.5 cwp 
-					# done
-					x=1
-				else
-					printf '%s ' $r | xargs -d' ' -I{} -P4 ./matching $name "rotated/{}/${btpl}" {} 1.5 wp 
-					# for rotation in $r; do
-					# 	./matching $name "rotated/${rotation}/${btpl}" $rotation 1.5 wp 
-					# done
-				fi
+				run_single_image6 $template &
 			done
 			echo ""
 		done
