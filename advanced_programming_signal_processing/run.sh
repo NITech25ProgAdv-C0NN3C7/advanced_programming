@@ -54,18 +54,13 @@ case $level in
 		done
 		;;
 	level4)
-		# level4の処理
-		echo "unimplemented"
-		
+		for image in $images; do
+			run_single_image $image "$templates" 0 1.5 pb &
+		done
 		;;
 	level[57])
-		# コントラスト補正
-		for image in $images; do
-			convert -equalize $image "imgproc/"`basename $image`
-		done
-		
 		# 特徴マッチング
-		feature_matching_results=$(python3 feature_matchings.py "imgproc/"$level"_*.ppm" $templates_dir"*.ppm")
+		feature_matching_results=$(python3 feature_matchings.py $images_dir"*.ppm" $templates_dir"*.ppm")
 		
 		# 結果をファイルに入れないと並列処理のwaitがうまくいかない
 		feature_matching_results_file="result/feature_matching_results.txt"
@@ -76,14 +71,14 @@ case $level in
 		while IFS= read -r line; do
 			
 			set -- $line
-			processed_image=$1  # 埋め込み後画像は加工済み
-			template=$2  # 埋め込み前画像は未加工
+			image=$1
+			template=$2
 			pos_x=$3
 			pos_y=$4
 			scale_percent=$5
 			rotation=$6
 			
-			image=$images_dir`basename $processed_image`
+			# image=$images_dir`basename $processed_image`
 			
 			if [ "$template" = "None" ]
 			then
@@ -117,14 +112,14 @@ case $level in
 			# output_name="result/`basename $template_name`.txt"
 			# read template_bname others < $output_name
 			
-			# result_template_name=`cat ${result} | awk '{print $1}'`
+			result_template_name=`cat ${result} | awk '{print $1}'`
 			
-			# if [ -z $result_template_name ]
-			# then
-			#     # テンプレートマッチングで見つかっていなければ背景が透過されている
-			#     # level4のような処理をしたい
-			# fi
-			# done
+			if [ -z $result_template_name ]
+			then
+			    # テンプレートマッチングで見つかっていなければ背景が透過されている
+			    ./matching $image $processed_template $rotation 1.5 cpb &
+			fi
+			done
 			
 		done < $feature_matching_results_file
 		;;
