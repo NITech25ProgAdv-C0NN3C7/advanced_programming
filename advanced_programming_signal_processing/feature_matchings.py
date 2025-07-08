@@ -10,7 +10,7 @@ import math
 # 画像の拡大率
 RESIZE_SCALE = 4
 # 特徴点抽出の準備
-orb = cv2.ORB_create(nfeatures=2000)
+orb = cv2.ORB_create(nfeatures=5000)
 # マッチングの準備
 bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 # テンプレート画像の情報を保持するリスト
@@ -21,10 +21,10 @@ def get_result(template, H):
     h, w = template.shape
 
     # テンプレート画像の4隅
-    corners_template = np.float32([[0, 0], [w-1, 0], [w-1, h-1], [0, h-1]]).reshape(-1, 1, 2)
+    corners = np.float32([[0, 0], [0, h-1], [w-1, h-1], [w-1, 0]]).reshape(-1, 1, 2)
 
     # Hで変換 → image内での対応位置
-    corners_in_image = cv2.perspectiveTransform(corners_template, H).reshape(-1, 2) / RESIZE_SCALE
+    corners_in_image = cv2.perspectiveTransform(corners, H).reshape(-1, 2) / RESIZE_SCALE
 
     # 左上の点と回転角を計算
     is_swap_x = corners_in_image[0, 0] > corners_in_image[2, 0]

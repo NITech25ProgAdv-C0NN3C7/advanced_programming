@@ -2,6 +2,8 @@
 # imagemagickで何か画像処理をして，/imgprocにかきこみ，テンプレートマッチング
 # 最終テストは，直下のforループを次に変更 for image in $1/final/*.ppm; do
 # ↑最終テスト時には下のimages_dirのtestをfinalに変更してください　すべてのlevelについて適用できます
+set -e
+
 level=$1
 
 mkdir -p imgproc result
@@ -75,18 +77,14 @@ case $level in
 		done
 		;;
 	level4)
-		# level4の処理
-		echo "unimplemented"
-		
+		for image in $images; do
+			run_single_image $image "$templates" 0 1.5 pb &
+		done
 		;;
 	level[57])
-		# コントラスト補正
-		for image in $images; do
-			convert -equalize $image "imgproc/"`basename $image`
-		done
-		
 		# 特徴マッチング
-		feature_matching_results=$(python3 feature_matchings.py "imgproc/"$level"_*.ppm" $templates_dir"*.ppm")
+		# feature_matching_results=$(python3 feature_matchings.py $images_dir"*.ppm" $templates_dir"*.ppm")
+		feature_matching_results=$(./feature_matchings $images_dir $templates_dir)
 		
 		# 結果をファイルに入れないと並列処理のwaitがうまくいかない
 		feature_matching_results_file="result/feature_matching_results.txt"
@@ -97,14 +95,15 @@ case $level in
 		while IFS= read -r line; do
 			
 			set -- $line
-			processed_image=$1  # 埋め込み後画像は加工済み
-			template=$2  # 埋め込み前画像は未加工
+			image=$1
+			template=$2
 			pos_x=$3
 			pos_y=$4
 			scale_percent=$5
 			rotation=$6
 			
-			image=$images_dir`basename $processed_image`
+			# image=$images_dir`basename $processed_image`
+			processed_image=$imgproc_dir`basename $image`
 			
 			if [ "$template" = "None" ]
 			then
@@ -114,7 +113,7 @@ case $level in
 			else
 				# 見つかっていればそのテンプレートについてのみテンプレートマッチング
 				# テンプレート画像を加工
-				processed_template="imgproc/"`basename $template`
+				processed_template=$imgproc_dir`basename $template`
 				
 				# 何もしない
 				convert $template $processed_template
@@ -135,19 +134,37 @@ case $level in
 				./matching $image $processed_template $rotation 1.5 cpg $pos_x $pos_y &
 			fi
 			
-			# output_name="result/`basename $template_name`.txt"
-			# read template_bname others < $output_name
-			
-			# result_template_name=`cat ${result} | awk '{print $1}'`
-			
-			# if [ -z $result_template_name ]
-			# then
-			#     # テンプレートマッチングで見つかっていなければ背景が透過されている
-			#     # level4のような処理をしたい
-			# fi
-			# done
-			
 		done < $feature_matching_results_file
+		wait
+
+		results="result/"$level"_*.txt"
+
+		for result in $results; do
+			# result_template_name=`cat ${result} | awk '{print $1}'`
+			result_contents=`cat $result`
+			
+			if [ -z "$result_contents" ];
+			then
+				result_image=$images_dir`basename $result .txt`".ppm"
+
+				while IFS= read -r line; do
+					set -- $line
+					image=$1
+					template=$2
+					pos_x=$3
+					pos_y=$4
+					scale_percent=$5
+					rotation=$6
+
+					if [ $image = $result_image ]
+					then
+						# テンプレートマッチングで見つかっていなければ背景が透過されている
+						./matching $image $template $rotation 0.1 pb &
+					fi
+					
+				done < $feature_matching_results_file
+			fi
+		done
 		;;
 	level6)
 		r="0 90 180 270"
