@@ -48,7 +48,7 @@ then
 elif [ $level = "level3" ]
 then
     for image in $images; do
-        # コントラスト補正
+        # 埋め込み後画像をコントラスト補正
         processed_image=$imgproc_dir`basename $image`
         convert -equalize $image $processed_image
 
@@ -63,7 +63,7 @@ then
 
 elif [ $level = "level5" ] || [ $level = "level7" ]
 then
-    # コントラスト補正
+    # 埋め込み後画像をコントラスト補正
     for image in $images; do
         convert -equalize $image "imgproc/"`basename $image`
     done
@@ -81,7 +81,7 @@ then
 
         set -- $line
         processed_image=$1  # 埋め込み後画像は加工済み
-        template=$2  # 埋め込み前画像は未加工
+        template=$2  # テンプレート画像は未加工
         pos_x=$3
         pos_y=$4
         scale_percent=$5
