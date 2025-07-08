@@ -130,6 +130,13 @@ case $level in
 		;;
 	level6)
 		r="0 90 180 270"
+
+		# テンプレ回転ディレクトリの作成
+		mkdir -p rotated
+		cd rotated
+		mkdir -p $r
+		cd ..
+		
 		for template in $templates; do
 			btpl=`basename ${template}`
 			for rotation in $r; do
