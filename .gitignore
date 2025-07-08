@@ -1,7 +1,6 @@
 advanced_programming_signal_processing/imgproc/*
-!advanced_programming_signal_processing/imgproc/empty
 advanced_programming_signal_processing/result/*
-!advanced_programming_signal_processing/result/empty
+!**/empty
 
 matching
 
