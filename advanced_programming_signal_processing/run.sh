@@ -16,6 +16,8 @@ imgproc_dir="imgproc/"
 images=$images_dir"*.ppm"
 templates=$templates_dir"/*.ppm"
 
+processed_images="$imgproc_dir""$level""_*.ppm"
+
 # バックグラウンドで並列に実行するための関数
 run_single_image() {
     image=$1
@@ -58,37 +60,33 @@ run_single_image6() {
 
 case $level in
 	level1)
-		for image in $images; do
-			run_single_image $image "$templates" 0 0.5 pg &
-		done
+		printf '%s ' $images | xargs -d' ' -I{} -P 20 sh run_single_image.sh {} "$templates" 0 0.5 pg
 		;;
 	level2)
-		for image in $images; do
-			run_single_image $image "$templates" 0 1.5 p &
-		done
+		printf '%s ' $images | xargs -d' ' -I{} -P 20 sh run_single_image.sh {} "$templates" 0 1.5 p
 		;;
 	level3)
-		for image in $images; do
+		for image in $images;
+		do
 			# コントラスト補正
-			processed_image=$imgproc_dir`basename $image`
-			convert -equalize $image $processed_image
-			
-			run_single_image $processed_image "$templates" 0 1.5 p &
+			processed_image=$imgproc_dir`basename "$image"`
+			convert -equalize "$image" "$processed_image"
+
+			# run_single_image $processed_image "$templates" 0 1.5 p &
 		done
+		printf '%s ' $processed_images | xargs -d' ' -I{} -P 20 sh run_single_image.sh {} "$templates" 0 1.5 p
 		;;
 	level4)
-		for image in $images; do
-			run_single_image $image "$templates" 0 1.5 pb &
-		done
+		printf '%s ' $images | xargs -d' ' -I{} -P 20 sh run_single_image.sh {} "$templates" 0 0.5 pb 
 		;;
 	level[57])
 		# 特徴マッチング
 		# feature_matching_results=$(python3 feature_matchings.py $images_dir"*.ppm" $templates_dir"*.ppm")
-		feature_matching_results=$(./feature_matchings $images_dir $templates_dir)
+		feature_matching_results=$(./feature_matchings "$images_dir" "$templates_dir")
 		
 		# 結果をファイルに入れないと並列処理のwaitがうまくいかない
 		feature_matching_results_file="result/feature_matching_results.txt"
-		echo "$feature_matching_results" > $feature_matching_results_file
+		echo "$feature_matching_results" > "$feature_matching_results_file"
 		
 		# 行に対してループ
 		# echo "$feature_matching_results" | while IFS= read -r line; do
@@ -103,20 +101,20 @@ case $level in
 			rotation=$6
 			
 			# image=$images_dir`basename $processed_image`
-			processed_image=$imgproc_dir`basename $image`
+			processed_image="$imgproc_dir"`basename $image`
 			
 			if [ "$template" = "None" ]
 			then
 				# 見つかっていなければノイズが乗っている、回転は0と断定してOK？
 				# すべてのテンプレートについてテンプレートマッチング
-				run_single_image $image "$templates" 0 1.5 p &
+				sh run_single_image.sh "$image" "$templates" 0 1.5 p &
 			else
 				# 見つかっていればそのテンプレートについてのみテンプレートマッチング
 				# テンプレート画像を加工
-				processed_template=$imgproc_dir`basename $template`
+				processed_template="$imgproc_dir"`basename "$template"`
 				
 				# 何もしない
-				convert $template $processed_template
+				convert "$template" "$processed_template"
 				
 				# 必要に応じて拡大縮小
 				if [ $scale_percent -ne 100 ]
