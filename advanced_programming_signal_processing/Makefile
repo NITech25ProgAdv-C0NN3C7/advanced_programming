@@ -1,4 +1,4 @@
-all: matching feature_matchings
+all: matching template_matchings feature_matchings
 
 matching: main.c imageUtil.c
 #	gcc -w -o matching main.c imageUtil.c -lm
@@ -13,8 +13,11 @@ matching: main.c imageUtil.c
 
 	gcc -w -Ofast -o matching main.c imageUtil.c -lm -march=native -mfpmath=both -fopenmp
 
+template_matchings: template_matchings.cpp
+	g++ -std=c++17 -Ofast -o $@ $< `pkg-config --cflags --libs opencv4`
+
 feature_matchings: feature_matchings.cpp
-	g++ -std=c++17 -O2 -o $@ $< `pkg-config --cflags --libs opencv4`
+	g++ -std=c++17 -Ofast -o $@ $< `pkg-config --cflags --libs opencv4`
 
 .PHONY: clean clean_subfile
 

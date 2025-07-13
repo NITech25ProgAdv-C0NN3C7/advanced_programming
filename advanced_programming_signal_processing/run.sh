@@ -8,10 +8,11 @@ level=$1
 
 mkdir -p imgproc result
 
-images_dir=$level"/test/"
+images_dir=$level"/final/"
 templates_dir=$level"/"
 
 imgproc_dir="imgproc/"
+result_dir="result/"
 
 images=$images_dir"*.ppm"
 templates=$templates_dir"/*.ppm"
@@ -63,7 +64,7 @@ case $level in
 		printf '%s ' $images | xargs -d' ' -I{} -P 20 sh run_single_image.sh {} "$templates" 0 0.5 pg
 		;;
 	level2)
-		printf '%s ' $images | xargs -d' ' -I{} -P 20 sh run_single_image.sh {} "$templates" 0 1.5 p
+		printf '%s ' $images | xargs -d' ' -I{} -P 20 ./template_matchings {} "$templates"
 		;;
 	level3)
 		for image in $images;
@@ -77,7 +78,7 @@ case $level in
 		printf '%s ' $processed_images | xargs -d' ' -I{} -P 20 sh run_single_image.sh {} "$templates" 0 1.5 p
 		;;
 	level4)
-		printf '%s ' $images | xargs -d' ' -I{} -P 20 sh run_single_image.sh {} "$templates" 0 0.5 pb 
+		printf '%s ' $images | xargs -d' ' -I{} -P 20 sh run_single_image.sh {} "$templates" 0 0.5 pb
 		;;
 	level[57])
 		# 特徴マッチング
