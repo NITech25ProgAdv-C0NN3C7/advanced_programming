@@ -11,10 +11,10 @@ matching: main.c imageUtil.c
 #	icc -w -fast -o matching main.c imageUtil.c -lm -mtune=native
 #	icc -w -fast -o matching main.c imageUtil.c -lm
 
-	gcc -w -Ofast -o matching main.c imageUtil.c -lm -march=native -mfpmath=both -fopenmp
+	gcc -w -Ofast -o matching main.c imageUtil.c -march=native -mfpmath=both -fopenmp
 
 feature_matchings: feature_matchings.cpp
-	g++ -std=c++17 -O2 -o $@ $< `pkg-config --cflags --libs opencv4`
+	g++ -std=c++17 -Ofast -mfpmath=both -march=native -o $@ $< `pkg-config --cflags --libs opencv4`
 
 .PHONY: clean clean_subfile
 
