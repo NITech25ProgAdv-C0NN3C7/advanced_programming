@@ -232,7 +232,9 @@ void templateMatchingColorWithoutBlack(Image *src, Image *template, Point *posit
 					int g = (src->data[pt + 1] - template->data[pt2 + 1]);
 					int b = (src->data[pt + 2] - template->data[pt2 + 2]);
 
-					distance += (r * r + g * g + b * b);
+					if(!(template->data[pt2 + 0]==0&&template->data[pt2 + 1]==0&&template->data[pt2 + 2]==0)){
+						distance += (r * r + g * g + b * b);
+					}
 				}
 			}
 			if (distance < min_distance)
