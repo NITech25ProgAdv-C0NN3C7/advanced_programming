@@ -8,10 +8,15 @@ level=$1
 
 mkdir -p imgproc result
 
-images_dir=$level"/test/"
-templates_dir=$level"/"
+# images_dir=$level"/final/"
+# templates_dir=$level"/"
+
+dataset_dir="dataset1/"
+images_dir=$dataset_dir$level"/"
+templates_dir=$dataset_dir
 
 imgproc_dir="imgproc/"
+result_dir="result/"
 
 images=$images_dir"*.ppm"
 templates=$templates_dir"/*.ppm"
@@ -71,17 +76,14 @@ case $level in
 			# コントラスト補正
 			processed_image=$imgproc_dir`basename "$image"`
 			convert -equalize "$image" "$processed_image"
-
-			# run_single_image $processed_image "$templates" 0 1.5 p &
 		done
 		printf '%s ' $processed_images | xargs -d' ' -I{} -P 20 sh run_single_image.sh {} "$templates" 0 1.5 p
 		;;
 	level4)
-		printf '%s ' $images | xargs -d' ' -I{} -P 20 sh run_single_image.sh {} "$templates" 0 0.5 pb 
+		printf '%s ' $images | xargs -d' ' -I{} -P 20 sh run_single_image.sh {} "$templates" 0 0.5 pb
 		;;
 	level[57])
 		# 特徴マッチング
-		# feature_matching_results=$(python3 feature_matchings.py $images_dir"*.ppm" $templates_dir"*.ppm")
 		feature_matching_results=$(./feature_matchings "$images_dir" "$templates_dir")
 		
 		# 結果をファイルに入れないと並列処理のwaitがうまくいかない
@@ -89,7 +91,6 @@ case $level in
 		echo "$feature_matching_results" > "$feature_matching_results_file"
 		
 		# 行に対してループ
-		# echo "$feature_matching_results" | while IFS= read -r line; do
 		while IFS= read -r line; do
 			
 			set -- $line
@@ -100,7 +101,6 @@ case $level in
 			scale_percent=$5
 			rotation=$6
 			
-			# image=$images_dir`basename $processed_image`
 			processed_image="$imgproc_dir"`basename $image`
 			
 			if [ "$template" = "None" ]
@@ -108,6 +108,7 @@ case $level in
 				# 見つかっていなければノイズが乗っている、回転は0と断定してOK？
 				# すべてのテンプレートについてテンプレートマッチング
 				sh run_single_image.sh "$image" "$templates" 0 1.5 p &
+				# ./template_matchings "$image" "$templates" &
 			else
 				# 見つかっていればそのテンプレートについてのみテンプレートマッチング
 				# テンプレート画像を加工
@@ -138,7 +139,6 @@ case $level in
 		results="result/"$level"_*.txt"
 
 		for result in $results; do
-			# result_template_name=`cat ${result} | awk '{print $1}'`
 			result_contents=`cat $result`
 			
 			if [ -z "$result_contents" ];
