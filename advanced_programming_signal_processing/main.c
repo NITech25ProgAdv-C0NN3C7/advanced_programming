@@ -141,54 +141,24 @@ void templateMatchingColor(Image *src, Image *template, Point *position, double 
 	int ret_x = 0;
 	int ret_y = 0;
 	int x, y, i, j;
-//	for (y = 0; y < (src->height - template->height); y++)
-//	{
-//		for (x = 0; x < src->width - template->width; x++)
-//		{
-//			int distance = 0;
-//			//SSD
-//			for (j = 0; j < template->height; j++)
-//			{
-//				for (i = 0; i < template->width; i++)
-//				{
-//					int pt = 3 * ((y + j) * src->width + (x + i));
-//					int pt2 = 3 * (j * template->width + i);
-//					int r = (src->data[pt + 0] - template->data[pt2 + 0]);
-//					int g = (src->data[pt + 1] - template->data[pt2 + 1]);
-//					int b = (src->data[pt + 2] - template->data[pt2 + 2]);
-//
-//					distance += (r * r + g * g + b * b);
-//				}
-//			}
-//			if (distance < min_distance)
-//			{
-//				min_distance = distance;
-//				ret_x = x;
-//				ret_y = y;
-//			}
-//		}
-//	}
-	int m, n;	// ループ潰し
-	// SSD
-	#pragma omp parallel for
-	for (m = 0; m < (src->height - template->height) * (src->width - template->width); m++)
+	for (y = 0; y < (src->height - template->height); y++)
 	{
-		int x = m % src->width, y = m / src->width;	// m = y * src->width + x
-		if (x < src->width - template->width)
+		for (x = 0; x < src->width - template->width; x++)
 		{
 			int distance = 0;
-			// SSD
-			#pragma omp parallel for reduction(+: distance)
-			for (n = 0; n < template->height * template->width; n++)
+			//SSD
+			for (j = 0; j < template->height; j++)
 			{
-				int i = n % template->width, j = n / template->width;	// n = j * template->width + i
-				int pt = 3 * (m + j * src->width + i);
-				int pt2 = 3 * n;
-				int r = src->data[pt + 0] - template->data[pt2 + 0];
-				int g = src->data[pt + 1] - template->data[pt2 + 1];
-				int b = src->data[pt + 2] - template->data[pt2 + 2];
+				for (i = 0; i < template->width; i++)
+				{
+					int pt = 3 * ((y + j) * src->width + (x + i));
+					int pt2 = 3 * (j * template->width + i);
+					int r = (src->data[pt + 0] - template->data[pt2 + 0]);
+					int g = (src->data[pt + 1] - template->data[pt2 + 1]);
+					int b = (src->data[pt + 2] - template->data[pt2 + 2]);
 
-				distance += r * r + g * g + b * b;
+					distance += (r * r + g * g + b * b);
+				}
 			}
 			if (distance < min_distance)
 			{
@@ -198,6 +168,36 @@ void templateMatchingColor(Image *src, Image *template, Point *position, double 
 			}
 		}
 	}
+	// int m, n;	// ループ潰し
+	// // SSD
+	// #pragma omp parallel for
+	// for (m = 0; m < (src->height - template->height) * (src->width - template->width); m++)
+	// {
+	// 	int x = m % src->width, y = m / src->width;	// m = y * src->width + x
+	// 	if (x < src->width - template->width)
+	// 	{
+	// 		int distance = 0;
+	// 		// SSD
+	// 		#pragma omp parallel for reduction(+: distance)
+	// 		for (n = 0; n < template->height * template->width; n++)
+	// 		{
+	// 			int i = n % template->width, j = n / template->width;	// n = j * template->width + i
+	// 			int pt = 3 * (m + j * src->width + i);
+	// 			int pt2 = 3 * n;
+	// 			int r = src->data[pt + 0] - template->data[pt2 + 0];
+	// 			int g = src->data[pt + 1] - template->data[pt2 + 1];
+	// 			int b = src->data[pt + 2] - template->data[pt2 + 2];
+
+	// 			distance += r * r + g * g + b * b;
+	// 		}
+	// 		if (distance < min_distance)
+	// 		{
+	// 			min_distance = distance;
+	// 			ret_x = x;
+	// 			ret_y = y;
+	// 		}
+	// 	}
+	// }
 
 	position->x = ret_x;
 	position->y = ret_y;
@@ -216,56 +216,23 @@ void templateMatchingColorWithoutBlack(Image *src, Image *template, Point *posit
 	int ret_x = 0;
 	int ret_y = 0;
 	int x, y, i, j;
-//	for (y = 0; y < (src->height - template->height); y++)
-//	{
-//		for (x = 0; x < src->width - template->width; x++)
-//		{
-//			int distance = 0;
-//			//SSD
-//			for (j = 0; j < template->height; j++)
-//			{
-//				for (i = 0; i < template->width; i++)
-//				{
-//					int pt = 3 * ((y + j) * src->width + (x + i));
-//					int pt2 = 3 * (j * template->width + i);
-//					int r = (src->data[pt + 0] - template->data[pt2 + 0]);
-//					int g = (src->data[pt + 1] - template->data[pt2 + 1]);
-//					int b = (src->data[pt + 2] - template->data[pt2 + 2]);
-//
-//					distance += (r * r + g * g + b * b);
-//				}
-//			}
-//			if (distance < min_distance)
-//			{
-//				min_distance = distance;
-//				ret_x = x;
-//				ret_y = y;
-//			}
-//		}
-//	}
-	int m, n;	// ループ潰し
-	// SSD
-	#pragma omp parallel for
-	for (m = 0; m < (src->height - template->height) * (src->width - template->width); m++)
+	for (y = 0; y < (src->height - template->height); y++)
 	{
-		int x = m % src->width, y = m / src->width;	// m = y * src->width + x
-		if (x < src->width - template->width)
+		for (x = 0; x < src->width - template->width; x++)
 		{
 			int distance = 0;
-			// SSD
-			#pragma omp parallel for reduction(+: distance)
-			for (n = 0; n < template->height * template->width; n++)
+			//SSD
+			for (j = 0; j < template->height; j++)
 			{
-				int pt2 = 3 * n;
-				if (template->data[pt2 + 0] || template->data[pt2 + 1] || template->data[pt2 + 2])
+				for (i = 0; i < template->width; i++)
 				{
-					int i = n % template->width, j = n / template->width;	// n = j * template->width + i
-					int pt = 3 * (m + j * src->width + i);
-					int r = src->data[pt + 0] - template->data[pt2 + 0];
-					int g = src->data[pt + 1] - template->data[pt2 + 1];
-					int b = src->data[pt + 2] - template->data[pt2 + 2];
+					int pt = 3 * ((y + j) * src->width + (x + i));
+					int pt2 = 3 * (j * template->width + i);
+					int r = (src->data[pt + 0] - template->data[pt2 + 0]);
+					int g = (src->data[pt + 1] - template->data[pt2 + 1]);
+					int b = (src->data[pt + 2] - template->data[pt2 + 2]);
 
-					distance += r * r + g * g + b * b;
+					distance += (r * r + g * g + b * b);
 				}
 			}
 			if (distance < min_distance)
@@ -276,6 +243,39 @@ void templateMatchingColorWithoutBlack(Image *src, Image *template, Point *posit
 			}
 		}
 	}
+	// int m, n;	// ループ潰し
+	// // SSD
+	// #pragma omp parallel for
+	// for (m = 0; m < (src->height - template->height) * (src->width - template->width); m++)
+	// {
+	// 	int x = m % src->width, y = m / src->width;	// m = y * src->width + x
+	// 	if (x < src->width - template->width)
+	// 	{
+	// 		int distance = 0;
+	// 		// SSD
+	// 		#pragma omp parallel for reduction(+: distance)
+	// 		for (n = 0; n < template->height * template->width; n++)
+	// 		{
+	// 			int pt2 = 3 * n;
+	// 			if (template->data[pt2 + 0] || template->data[pt2 + 1] || template->data[pt2 + 2])
+	// 			{
+	// 				int i = n % template->width, j = n / template->width;	// n = j * template->width + i
+	// 				int pt = 3 * (m + j * src->width + i);
+	// 				int r = src->data[pt + 0] - template->data[pt2 + 0];
+	// 				int g = src->data[pt + 1] - template->data[pt2 + 1];
+	// 				int b = src->data[pt + 2] - template->data[pt2 + 2];
+
+	// 				distance += r * r + g * g + b * b;
+	// 			}
+	// 		}
+	// 		if (distance < min_distance)
+	// 		{
+	// 			min_distance = distance;
+	// 			ret_x = x;
+	// 			ret_y = y;
+	// 		}
+	// 	}
+	// }
 
 	position->x = ret_x;
 	position->y = ret_y;
